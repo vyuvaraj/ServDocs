@@ -1,0 +1,22 @@
+/// User represents a platform account
+struct User {
+    id: int,
+    name: string,
+    email: string,
+}
+
+/// CreateUserReq payload for user registration
+struct CreateUserReq {
+    name: string,
+    email: string,
+}
+
+/// handleRegister endpoint creates a new user
+route POST /api/users(CreateUserReq) -> User {
+    ...
+}
+
+/// validateEmail checks if an email is formatted properly
+fn validateEmail(email: string) -> bool {
+    ...
+}
