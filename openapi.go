@@ -35,9 +35,10 @@ func GenerateOpenAPI(doc *SrvDoc, title, outputPath string) error {
 		for _, f := range s.Fields {
 			pType := "string"
 			fType := strings.ToLower(f.Type)
-			if fType == "int" || fType == "integer" {
+			switch fType {
+			case "int", "integer":
 				pType = "integer"
-			} else if fType == "bool" || fType == "boolean" {
+			case "bool", "boolean":
 				pType = "boolean"
 			}
 			properties[f.Name] = map[string]interface{}{
