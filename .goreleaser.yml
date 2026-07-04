@@ -1,0 +1,76 @@
+project_name: servdocs
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: servdocs
+    main: .
+    binary: servdocs
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.buildDate={{.Date}}
+
+archives:
+  - id: servdocs
+    builds: [servdocs]
+    name_template: "servdocs_{{.Version}}_{{.Os}}_{{.Arch}}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - Merge pull request
+      - Merge branch
+
+dockers:
+  - image_templates:
+      - "ghcr.io/vyuvaraj/servdocs:{{.Tag}}"
+      - "ghcr.io/vyuvaraj/servdocs:latest"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--label=org.opencontainers.image.title=ServDocs"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.source=https://github.com/vyuvaraj/ServDocs"
+
+brews:
+  - name: servdocs
+    repository:
+      owner: vyuvaraj
+      name: homebrew-serv
+    homepage: "https://github.com/vyuvaraj/ServDocs"
+    description: "Documentation server for the ServVerse platform"
+    license: "Apache-2.0"
+    install: |
+      bin.install "servdocs"
+    test: |
+      system "#{bin}/servdocs", "--version"
+
+scoops:
+  - repository:
+      owner: vyuvaraj
+      name: scoop-serv
+    homepage: "https://github.com/vyuvaraj/ServDocs"
+    description: "Documentation server for the ServVerse platform"
+    license: "Apache-2.0"
