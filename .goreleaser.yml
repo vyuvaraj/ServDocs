@@ -1,4 +1,4 @@
-project_name: servdocs
+﻿project_name: servdocs
 version: 2
 
 before:
@@ -47,7 +47,7 @@ dockers:
   - image_templates:
       - "ghcr.io/vyuvaraj/servdocs:{{.Tag}}"
       - "ghcr.io/vyuvaraj/servdocs:latest"
-    dockerfile: Dockerfile
+    dockerfile: Dockerfile.goreleaser
     build_flag_templates:
       - "--label=org.opencontainers.image.title=ServDocs"
       - "--label=org.opencontainers.image.version={{.Version}}"
