@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -22,6 +23,8 @@ func main() {
 		input := generateCmd.String("input", "example.srv", "Path to input .srv file")
 		output := generateCmd.String("output", "docs.html", "Path to output HTML file")
 		title := generateCmd.String("title", "Servverse", "Documentation Title")
+		versionTag := generateCmd.String("version-tag", "", "Version tag (e.g. v1.0.0)")
+		outDir := generateCmd.String("out-dir", "", "Output directory for versioned docs")
 		_ = generateCmd.Parse(os.Args[2:])
 
 		doc, err := ParseSrvFile(*input)
@@ -29,7 +32,15 @@ func main() {
 			log.Fatalf("failed to parse file: %v", err)
 		}
 
-		if err := GenerateHtml(doc, *title, *output); err != nil {
+		if *outDir != "" && *versionTag != "" {
+			err := os.MkdirAll(filepath.Join(*outDir, *versionTag), 0755)
+			if err != nil {
+				log.Fatalf("failed to create directory: %v", err)
+			}
+			*output = filepath.Join(*outDir, *versionTag, "index.html")
+		}
+
+		if err := GenerateHtml(doc, *title, *output, *outDir, *versionTag); err != nil {
 			log.Fatalf("failed to generate HTML: %v", err)
 		}
 		fmt.Printf("Documentation site generated successfully at %s\n", *output)
@@ -64,7 +75,7 @@ func main() {
 		}
 
 		tempFile := "index_temp.html"
-		if err := GenerateHtml(doc, *title, tempFile); err != nil {
+		if err := GenerateHtml(doc, *title, tempFile, "", ""); err != nil {
 			log.Fatalf("failed to generate HTML: %v", err)
 		}
 		defer os.Remove(tempFile)

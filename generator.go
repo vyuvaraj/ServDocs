@@ -246,6 +246,60 @@ const htmlTemplate = `<!DOCTYPE html>
             border-color: var(--accent-color);
         }
 
+        .code-examples-container {
+            margin-top: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .example-tabs {
+            display: flex;
+            background-color: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            border-right: 1px solid var(--border-color);
+            color: #8b949e;
+            padding: 8px 16px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-heading);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            background-color: var(--bg-color);
+            border-bottom: 2px solid var(--accent-color);
+            margin-bottom: -1px;
+        }
+
+        .example-content {
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+
+        .example-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
         .nested-schema-container {
             margin-top: 10px;
             padding: 12px;
@@ -276,6 +330,17 @@ const htmlTemplate = `<!DOCTYPE html>
 
     <aside>
         <div class="logo">ServDocs</div>
+        {{if .Versions}}
+        <div class="version-select-container" style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+            <label for="version-select" style="font-size: 11px; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Version:</label>
+            <select id="version-select" onchange="window.location.href='../' + this.value + '/index.html'" style="background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 4px 8px; border-radius: 6px; font-size: 13px; font-family: inherit; outline: none; cursor: pointer; flex: 1;">
+                {{$curr := .CurrentVersion}}
+                {{range .Versions}}
+                <option value="{{.}}" {{if eq . $curr}}selected{{end}}>{{.}}</option>
+                {{end}}
+            </select>
+        </div>
+        {{end}}
         <input type="text" class="search-box" id="search" placeholder="Quick search..." onkeyup="filterDocs()">
         <div id="search-status" style="font-size: 12px; color: #8b949e; margin-top: -16px; margin-bottom: 24px; display: none;"></div>
 
@@ -370,6 +435,16 @@ const htmlTemplate = `<!DOCTYPE html>
                 </tbody>
             </table>
             {{end}}
+            <div class="code-examples-container" data-method="{{.Method}}" data-path="{{.Path}}" data-input="{{.InputType}}">
+                <div class="example-tabs">
+                    <button class="tab-btn active" onclick="switchTab(this, 'curl')">cURL</button>
+                    <button class="tab-btn" onclick="switchTab(this, 'go')">Go</button>
+                    <button class="tab-btn" onclick="switchTab(this, 'js')">JavaScript</button>
+                </div>
+                <div class="example-content">
+                    <pre><code class="code-box"></code></pre>
+                </div>
+            </div>
         </div>
         {{end}}
         {{end}}
@@ -553,17 +628,106 @@ const htmlTemplate = `<!DOCTYPE html>
                 searchStatus.style.display = 'none';
             }
         }
+
+        function generateMockJSON(structName) {
+            const schema = srvSchemas[structName];
+            if (!schema || !schema.fields || schema.fields.length === 0) {
+                return null;
+            }
+            const mock = {};
+            schema.fields.forEach(field => {
+                let val = "";
+                const lowerType = field.type.toLowerCase();
+                if (lowerType.includes("int") || lowerType.includes("num") || lowerType.includes("float")) {
+                    val = 0;
+                } else if (lowerType.includes("bool")) {
+                    val = false;
+                } else if (lowerType.includes("array") || lowerType.startsWith("[")) {
+                    val = [];
+                } else if (lowerType.includes("map")) {
+                    val = {};
+                } else {
+                    val = "string";
+                }
+                mock[field.name] = val;
+            });
+            return mock;
+        }
+
+        function getExampleCode(method, path, inputType, lang) {
+            const mockObj = inputType ? generateMockJSON(inputType) : null;
+            const jsonStr = mockObj ? JSON.stringify(mockObj, null, 2) : '';
+            
+            if (lang === 'curl') {
+                let curl = "curl -X " + method + " \"http://localhost:8080" + path + "\"";
+                if (mockObj) {
+                    const escapedJson = JSON.stringify(mockObj).replace(/"/g, '\\"');
+                    curl += " \\\n  -H \"Content-Type: application/json\" \\\n  -d \"" + escapedJson + "\"";
+                }
+                return curl;
+            } else if (lang === 'go') {
+                let goCode = "package main\n\nimport (\n\t\"bytes\"\n\t\"fmt\"\n\t\"io\"\n\t\"net/http\"\n)\n\nfunc main() {\n";
+                if (mockObj) {
+                    const tick = String.fromCharCode(96);
+                    goCode += "\tjsonData := []byte(" + tick + JSON.stringify(mockObj, null, 2) + tick + ")\n";
+                    goCode += "\treq, err := http.NewRequest(\"" + method + "\", \"http://localhost:8080" + path + "\", bytes.NewBuffer(jsonData))\n";
+                    goCode += "\treq.Header.Set(\"Content-Type\", \"application/json\")\n";
+                } else {
+                    goCode += "\treq, err := http.NewRequest(\"" + method + "\", \"http://localhost:8080" + path + "\", nil)\n";
+                }
+                goCode += "\tif err != nil {\n\t\tpanic(err)\n\t}\n\n";
+                goCode += "\tclient := &http.Client{}\n\tresp, err := client.Do(req)\n\tif err != nil {\n\t\tpanic(err)\n\t}\n\tdefer resp.Body.Close()\n\n\tbody, _ := io.ReadAll(resp.Body)\n\tfmt.Println(string(body))\n}";
+                return goCode;
+            } else if (lang === 'js') {
+                let jsCode = "fetch(\"http://localhost:8080" + path + "\", {\n  method: \"" + method + "\",\n";
+                if (mockObj) {
+                    jsCode += "  headers: {\n    \"Content-Type\": \"application/json\"\n  },\n  body: JSON.stringify(" + JSON.stringify(mockObj, null, 2) + ")\n";
+                } else {
+                    jsCode += "  headers: {}\n";
+                }
+                jsCode += "})\n.then(response => response.json())\n.then(data => console.log(data))\n.catch(error => console.error(error));";
+                return jsCode;
+            }
+            return '';
+        }
+
+        function initCodeExamples() {
+            document.querySelectorAll('.code-examples-container').forEach(container => {
+                const method = container.getAttribute('data-method');
+                const path = container.getAttribute('data-path');
+                const input = container.getAttribute('data-input');
+                const codeBox = container.querySelector('.code-box');
+                codeBox.textContent = getExampleCode(method, path, input, 'curl');
+            });
+        }
+        
+        function switchTab(btn, lang) {
+            const container = btn.closest('.code-examples-container');
+            const method = container.getAttribute('data-method');
+            const path = container.getAttribute('data-path');
+            const input = container.getAttribute('data-input');
+            
+            container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const codeBox = container.querySelector('.code-box');
+            codeBox.textContent = getExampleCode(method, path, input, lang);
+        }
+        
+        document.addEventListener('DOMContentLoaded', initCodeExamples);
     </script>
 </body>
 </html>`
 
 type PageData struct {
-	Title       string
-	Doc         *SrvDoc
-	SchemasJSON string
+	Title          string
+	Doc            *SrvDoc
+	SchemasJSON    string
+	Versions       []string
+	CurrentVersion string
 }
 
-func GenerateHtml(doc *SrvDoc, title, outputPath string) error {
+func GenerateHtml(doc *SrvDoc, title, outputPath string, outDir string, currentVersion string) error {
 	tmpl, err := template.New("docs").Funcs(template.FuncMap{
 		"low": func(s string) string {
 			return strings.ToLower(s)
@@ -598,10 +762,34 @@ func GenerateHtml(doc *SrvDoc, title, outputPath string) error {
 		return err
 	}
 
+	var versions []string
+	if outDir != "" {
+		entries, _ := os.ReadDir(outDir)
+		for _, entry := range entries {
+			if entry.IsDir() {
+				versions = append(versions, entry.Name())
+			}
+		}
+	}
+	if currentVersion != "" {
+		found := false
+		for _, v := range versions {
+			if v == currentVersion {
+				found = true
+				break
+			}
+		}
+		if !found {
+			versions = append(versions, currentVersion)
+		}
+	}
+
 	data := PageData{
-		Title:       title,
-		Doc:         doc,
-		SchemasJSON: string(schemasBytes),
+		Title:          title,
+		Doc:            doc,
+		SchemasJSON:    string(schemasBytes),
+		Versions:       versions,
+		CurrentVersion: currentVersion,
 	}
 
 	return tmpl.Execute(file, data)

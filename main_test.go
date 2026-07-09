@@ -87,7 +87,7 @@ func TestGenerateHtml(t *testing.T) {
 	defer os.Remove(tmpHtml.Name())
 	tmpHtml.Close()
 
-	err = GenerateHtml(doc, "Test Title", tmpHtml.Name())
+	err = GenerateHtml(doc, "Test Title", tmpHtml.Name(), "", "")
 	if err != nil {
 		t.Fatalf("GenerateHtml failed: %v", err)
 	}
@@ -219,4 +219,60 @@ func TestGenerateClientSDK(t *testing.T) {
 		t.Errorf("invalid swift output: %s", swiftCode)
 	}
 }
+
+func TestGenerateHtmlVersioned(t *testing.T) {
+	doc := &SrvDoc{
+		Structs: []StructDef{
+			{Name: "Item", Description: "Simple item", Fields: []StructField{{Name: "id", Type: "int"}, {Name: "name", Type: "string"}}},
+		},
+		Routes: []RouteDef{
+			{Method: "POST", Path: "/item", InputType: "Item", OutputType: "Item"},
+		},
+	}
+
+	tmpDir, err := os.MkdirTemp("", "test_docs_versioned")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create directories for two versions
+	v1Dir := filepath.Join(tmpDir, "v1.0.0")
+	v2Dir := filepath.Join(tmpDir, "v2.0.0")
+	if err := os.MkdirAll(v1Dir, 0755); err != nil {
+		t.Fatalf("failed to create v1 dir: %v", err)
+	}
+	if err := os.MkdirAll(v2Dir, 0755); err != nil {
+		t.Fatalf("failed to create v2 dir: %v", err)
+	}
+
+	err = GenerateHtml(doc, "Test Title", filepath.Join(v1Dir, "index.html"), tmpDir, "v1.0.0")
+	if err != nil {
+		t.Fatalf("GenerateHtml failed for v1.0.0: %v", err)
+	}
+
+	err = GenerateHtml(doc, "Test Title", filepath.Join(v2Dir, "index.html"), tmpDir, "v2.0.0")
+	if err != nil {
+		t.Fatalf("GenerateHtml failed for v2.0.0: %v", err)
+	}
+
+	// Verify both exist
+	content1, err := os.ReadFile(filepath.Join(v1Dir, "index.html"))
+	if err != nil {
+		t.Fatalf("failed to read v1 index: %v", err)
+	}
+	content2, err := os.ReadFile(filepath.Join(v2Dir, "index.html"))
+	if err != nil {
+		t.Fatalf("failed to read v2 index: %v", err)
+	}
+
+	// Check if version selector with both versions is present
+	if !strings.Contains(string(content1), "v1.0.0") || !strings.Contains(string(content1), "v2.0.0") {
+		t.Errorf("v1 index doesn't list all versions: %s", string(content1))
+	}
+	if !strings.Contains(string(content2), "v1.0.0") || !strings.Contains(string(content2), "v2.0.0") {
+		t.Errorf("v2 index doesn't list all versions: %s", string(content2))
+	}
+}
+
 
