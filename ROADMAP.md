@@ -33,7 +33,7 @@ This roadmap outlines the planned development phases for the ServDocs documentat
 - [ ] **Code examples in docs** — Include `.srv` usage examples alongside route documentation
 - [ ] **Versioned docs** — Generate docs per git tag; host multiple versions side-by-side
 - [ ] **Search** — Client-side full-text search across generated documentation
-- [ ] **`serv docs serve --watch`** — File watcher that regenerates docs on `.srv` file changes
+- [x] **`serv docs serve --watch`** — File watcher that regenerates docs on `.srv` file changes.
 
 ## Phase 4: Ecosystem Integration (Pending)
 - [ ] **ServGate auto-registration** — Push generated OpenAPI specs to ServGate's auto-discovery endpoint
