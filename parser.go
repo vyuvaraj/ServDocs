@@ -20,11 +20,12 @@ type StructDef struct {
 }
 
 type RouteDef struct {
-	Method      string `json:"method"`
-	Path        string `json:"path"`
-	InputType   string `json:"input_type,omitempty"`
-	OutputType  string `json:"output_type,omitempty"`
-	Description string `json:"description,omitempty"`
+	Method      string   `json:"method"`
+	Path        string   `json:"path"`
+	InputType   string   `json:"input_type,omitempty"`
+	OutputType  string   `json:"output_type,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Middlewares []string `json:"middlewares,omitempty"`
 }
 
 type FnDef struct {
@@ -43,7 +44,7 @@ type SrvDoc struct {
 var (
 	structRegex = regexp.MustCompile(`^struct\s+(\w+)\s*\{`)
 	fieldRegex  = regexp.MustCompile(`^\s*(\w+)\s*:\s*([^,;]+)`)
-	routeRegex  = regexp.MustCompile(`^route\s+(GET|POST|PUT|DELETE)\s+(\S+)\s*\(([^)]*)\)\s*(?:->\s*(\S+))?`)
+	routeRegex  = regexp.MustCompile(`^route\s+"?(GET|POST|PUT|DELETE)"?\s+"?([^\s"(]+)"?\s*\(([^)]*)\)(?:\s+use\s+\[([^\]]*)\])?(?:\s*->\s*(\S+))?`)
 	fnRegex     = regexp.MustCompile(`^fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*(\S+))?`)
 )
 
@@ -113,9 +114,19 @@ func ParseSrvFile(filePath string) (*SrvDoc, error) {
 			if matches[3] != "" {
 				inputType = strings.TrimSpace(matches[3])
 			}
+			var middlewares []string
+			if len(matches) > 4 && matches[4] != "" {
+				parts := strings.Split(matches[4], ",")
+				for _, p := range parts {
+					trimmed := strings.TrimSpace(p)
+					if trimmed != "" {
+						middlewares = append(middlewares, trimmed)
+					}
+				}
+			}
 			outputType := ""
-			if len(matches) > 4 {
-				outputType = strings.TrimSpace(matches[4])
+			if len(matches) > 5 {
+				outputType = strings.TrimSpace(matches[5])
 			}
 			doc.Routes = append(doc.Routes, RouteDef{
 				Method:      matches[1],
@@ -123,6 +134,7 @@ func ParseSrvFile(filePath string) (*SrvDoc, error) {
 				InputType:   inputType,
 				OutputType:  outputType,
 				Description: strings.Join(currentDocComments, " "),
+				Middlewares: middlewares,
 			})
 			currentDocComments = nil
 			continue

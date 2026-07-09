@@ -325,6 +325,14 @@ const htmlTemplate = `<!DOCTYPE html>
                 <span class="badge badge-{{html (print (slice (low .Method) 0))}}">{{.Method}}</span>
                 <span class="card-title">{{.Path}}</span>
             </div>
+            {{if .Middlewares}}
+            <div class="middleware-chain" style="margin-top: -8px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 11px; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Middleware Chain:</span>
+                {{range .Middlewares}}
+                <span class="middleware-badge" style="color: #bc8cff; font-size: 11px; font-family: 'JetBrains Mono', monospace; border-radius: 4px; padding: 2px 6px; background-color: rgba(188, 140, 255, 0.1); border: 1px solid rgba(188, 140, 255, 0.2);">{{.}}</span>
+                {{end}}
+            </div>
+            {{end}}
             <p class="card-desc">{{.Description}}</p>
             {{if or .InputType .OutputType}}
             <table class="param-table">

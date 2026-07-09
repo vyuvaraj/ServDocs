@@ -29,7 +29,7 @@ This roadmap outlines the planned development phases for the ServDocs documentat
 
 ## Phase 3: Advanced Documentation (Pending)
 - [x] **Type schema rendering** — Render struct/interface definitions as expandable schema tables in HTML
-- [ ] **Middleware chain documentation** — Show which middleware applies to which routes with order
+- [x] **Middleware chain documentation** — Show which middleware applies to which routes with order [July 9, 2026]
 - [ ] **Code examples in docs** — Include `.srv` usage examples alongside route documentation
 - [ ] **Versioned docs** — Generate docs per git tag; host multiple versions side-by-side
 - [x] **Search** — Client-side full-text search across generated documentation
