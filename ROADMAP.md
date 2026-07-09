@@ -28,11 +28,11 @@ This roadmap outlines the planned development phases for the ServDocs documentat
 | 2.5 | **Markdown output format** | Small | Generate markdown docs alongside HTML — useful for GitHub wikis and README embedding | [ ] |
 
 ## Phase 3: Advanced Documentation (Pending)
-- [ ] **Type schema rendering** — Render struct/interface definitions as expandable schema tables in HTML
+- [x] **Type schema rendering** — Render struct/interface definitions as expandable schema tables in HTML
 - [ ] **Middleware chain documentation** — Show which middleware applies to which routes with order
 - [ ] **Code examples in docs** — Include `.srv` usage examples alongside route documentation
 - [ ] **Versioned docs** — Generate docs per git tag; host multiple versions side-by-side
-- [ ] **Search** — Client-side full-text search across generated documentation
+- [x] **Search** — Client-side full-text search across generated documentation
 - [x] **`serv docs serve --watch`** — File watcher that regenerates docs on `.srv` file changes.
 
 ## Phase 4: Ecosystem Integration (Pending)

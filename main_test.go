@@ -90,6 +90,18 @@ func TestGenerateHtml(t *testing.T) {
 	if !strings.Contains(content, "/item") {
 		t.Errorf("HTML missing route path '/item'")
 	}
+	if !strings.Contains(content, "srvSchemas =") {
+		t.Errorf("HTML missing serialized schemas JSON 'srvSchemas = ...'")
+	}
+	if !strings.Contains(content, "Item") {
+		t.Errorf("HTML missing struct name 'Item' in serialized schema")
+	}
+	if !strings.Contains(content, "toggle-schema-btn") {
+		t.Errorf("HTML missing toggle schema button element class 'toggle-schema-btn'")
+	}
+	if !strings.Contains(content, "search-status") {
+		t.Errorf("HTML missing search results status element ID 'search-status'")
+	}
 }
 
 func TestGenerateOpenAPI(t *testing.T) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"html/template"
 	"os"
 	"strings"
@@ -221,6 +222,54 @@ const htmlTemplate = `<!DOCTYPE html>
             color: #ff7b72;
             font-size: 13px;
         }
+
+        .payload-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toggle-schema-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--accent-color);
+            padding: 2px 8px;
+            font-size: 11px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toggle-schema-btn:hover {
+            background-color: var(--border-color);
+            border-color: var(--accent-color);
+        }
+
+        .nested-schema-container {
+            margin-top: 10px;
+            padding: 12px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        .nested-schema-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .nested-schema-table th, .nested-schema-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .nested-schema-table th {
+            color: var(--text-heading);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -228,6 +277,7 @@ const htmlTemplate = `<!DOCTYPE html>
     <aside>
         <div class="logo">ServDocs</div>
         <input type="text" class="search-box" id="search" placeholder="Quick search..." onkeyup="filterDocs()">
+        <div id="search-status" style="font-size: 12px; color: #8b949e; margin-top: -16px; margin-bottom: 24px; display: none;"></div>
 
         <div class="nav-section">
             <div class="nav-title">Routes</div>
@@ -288,13 +338,25 @@ const htmlTemplate = `<!DOCTYPE html>
                     {{if .InputType}}
                     <tr>
                         <td>Request Payload</td>
-                        <td><span class="code-style">{{.InputType}}</span></td>
+                        <td>
+                            <div class="payload-cell">
+                                <span class="code-style">{{.InputType}}</span>
+                                <button class="toggle-schema-btn" onclick="toggleSchema(this, '{{.InputType}}')">▸ Expand Schema</button>
+                            </div>
+                            <div class="nested-schema-container" style="display: none;"></div>
+                        </td>
                     </tr>
                     {{end}}
                     {{if .OutputType}}
                     <tr>
                         <td>Response Payload</td>
-                        <td><span class="code-style">{{.OutputType}}</span></td>
+                        <td>
+                            <div class="payload-cell">
+                                <span class="code-style">{{.OutputType}}</span>
+                                <button class="toggle-schema-btn" onclick="toggleSchema(this, '{{.OutputType}}')">▸ Expand Schema</button>
+                            </div>
+                            <div class="nested-schema-container" style="display: none;"></div>
+                        </td>
                     </tr>
                     {{end}}
                 </tbody>
@@ -348,6 +410,8 @@ const htmlTemplate = `<!DOCTYPE html>
     </main>
 
     <script>
+        const srvSchemas = JSON.parse({{.SchemasJSON}});
+
         function scrollToElement(id) {
             const element = document.getElementById(id);
             if (element) {
@@ -355,25 +419,140 @@ const htmlTemplate = `<!DOCTYPE html>
             }
         }
 
+        function toggleSchema(btn, structName) {
+            const container = btn.parentElement.nextElementSibling;
+            if (container.style.display === 'block') {
+                container.style.display = 'none';
+                btn.innerText = '▸ Expand Schema';
+            } else {
+                container.style.display = 'block';
+                btn.innerText = '▾ Collapse Schema';
+                if (!container.innerHTML) {
+                    const schema = srvSchemas[structName];
+                    if (!schema || !schema.fields || schema.fields.length === 0) {
+                        container.innerHTML = '<span style="color: #ff7b72">No details found for ' + structName + '</span>';
+                        return;
+                    }
+                    let html = '<table class="nested-schema-table"><thead><tr><th>Field Name</th><th>Type</th><th>Description</th></tr></thead><tbody>';
+                    schema.fields.forEach(field => {
+                        html += '<tr><td style="font-weight: 600">' + field.name + '</td><td><span class="code-style" style="color: #bc8cff">' + field.type + '</span></td><td>' + (field.description || '-') + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                }
+            }
+        }
+
+        const originalContents = new Map();
+
+        function getOrSaveOriginalContent(el) {
+            if (!originalContents.has(el)) {
+                originalContents.set(el, el.innerHTML);
+            }
+            return originalContents.get(el);
+        }
+
+        function highlightText(html, query) {
+            if (!query) return html;
+            const regex = new RegExp('(' + query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + ')', 'gi');
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString('<div>' + html + '</div>', 'text/html');
+            const walk = document.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            const nodesToReplace = [];
+            while (node = walk.nextNode()) {
+                if (node.nodeValue.toLowerCase().includes(query.toLowerCase())) {
+                    nodesToReplace.push(node);
+                }
+            }
+            nodesToReplace.forEach(textNode => {
+                const span = doc.createElement('span');
+                span.innerHTML = textNode.nodeValue.replace(regex, '<mark style="background-color: rgba(248, 238, 73, 0.4); color: inherit; border-radius: 2px; padding: 0 2px;">$1</mark>');
+                textNode.parentNode.replaceChild(span, textNode);
+            });
+            return doc.body.firstChild.innerHTML;
+        }
+
         function filterDocs() {
-            const query = document.getElementById('search').value.toLowerCase();
+            const query = document.getElementById('search').value.toLowerCase().trim();
             const cards = document.querySelectorAll('.doc-card');
+            const searchStatus = document.getElementById('search-status');
+            
+            let matchedCount = 0;
+
+            const visibleRoutes = new Set();
+            const visibleStructs = new Set();
+            const visibleFunctions = new Set();
+
             cards.forEach(card => {
                 const searchData = card.getAttribute('data-search').toLowerCase();
-                if (searchData.includes(query)) {
+                const cardId = card.id;
+
+                card.innerHTML = getOrSaveOriginalContent(card);
+
+                if (query === '' || searchData.includes(query)) {
                     card.style.display = 'block';
+                    matchedCount++;
+
+                    if (query !== '') {
+                        card.innerHTML = highlightText(card.innerHTML, query);
+                    }
+
+                    if (cardId.startsWith('route-')) {
+                        visibleRoutes.add(cardId);
+                    } else if (cardId.startsWith('struct-')) {
+                        visibleStructs.add(cardId.replace('struct-', ''));
+                    } else if (cardId.startsWith('fn-')) {
+                        visibleFunctions.add(cardId.replace('fn-', ''));
+                    }
                 } else {
                     card.style.display = 'none';
                 }
             });
+
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                const onclickAttr = item.getAttribute('onclick') || '';
+                let shouldShow = query === '';
+
+                if (!shouldShow) {
+                    if (onclickAttr.includes('route-')) {
+                        const match = onclickAttr.match(/'([^']+)'/);
+                        if (match && visibleRoutes.has(match[1])) {
+                            shouldShow = true;
+                        }
+                    } else if (onclickAttr.includes('struct-')) {
+                        const match = onclickAttr.match(/'struct-([^']+)'/);
+                        if (match && visibleStructs.has(match[1])) {
+                            shouldShow = true;
+                        }
+                    } else if (onclickAttr.includes('fn-')) {
+                        const match = onclickAttr.match(/'fn-([^']+)'/);
+                        if (match && visibleFunctions.has(match[1])) {
+                            shouldShow = true;
+                        }
+                    }
+                }
+
+                item.style.display = shouldShow ? 'block' : 'none';
+            });
+
+            if (query !== '') {
+                searchStatus.innerText = 'Found ' + matchedCount + ' matching items';
+                searchStatus.style.display = 'block';
+            } else {
+                searchStatus.style.display = 'none';
+            }
         }
     </script>
 </body>
 </html>`
 
 type PageData struct {
-	Title string
-	Doc   *SrvDoc
+	Title       string
+	Doc         *SrvDoc
+	SchemasJSON string
 }
 
 func GenerateHtml(doc *SrvDoc, title, outputPath string) error {
@@ -396,16 +575,25 @@ func GenerateHtml(doc *SrvDoc, title, outputPath string) error {
 		return err
 	}
 
-	// Wait, strings package is needed for low/strings functions. Let's make sure it's correct
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
+	schemasMap := make(map[string]StructDef)
+	for _, s := range doc.Structs {
+		schemasMap[s.Name] = s
+	}
+	schemasBytes, err := json.Marshal(schemasMap)
+	if err != nil {
+		return err
+	}
+
 	data := PageData{
-		Title: title,
-		Doc:   doc,
+		Title:       title,
+		Doc:         doc,
+		SchemasJSON: string(schemasBytes),
 	}
 
 	return tmpl.Execute(file, data)
