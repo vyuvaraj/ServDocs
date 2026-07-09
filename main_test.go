@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -133,3 +134,63 @@ func TestGenerateOpenAPI(t *testing.T) {
 		t.Errorf("missing path '/item' in OpenAPI specs")
 	}
 }
+
+func TestGenerateClientSDK(t *testing.T) {
+	doc := &SrvDoc{
+		Structs: []StructDef{
+			{Name: "User", Description: "Simple user", Fields: []StructField{{Name: "id", Type: "int"}, {Name: "username", Type: "string"}}},
+		},
+		Routes: []RouteDef{
+			{Method: "POST", Path: "/user", InputType: "User", OutputType: "User"},
+		},
+	}
+
+	tmpDir, err := os.MkdirTemp("", "test_sdk")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// 1. Test TypeScript
+	err = GenerateClientSDK(doc, "typescript", tmpDir)
+	if err != nil {
+		t.Fatalf("typescript generation failed: %v", err)
+	}
+	tsBytes, err := os.ReadFile(filepath.Join(tmpDir, "client.ts"))
+	if err != nil {
+		t.Fatalf("failed to read ts: %v", err)
+	}
+	tsCode := string(tsBytes)
+	if !strings.Contains(tsCode, "export interface User") || !strings.Contains(tsCode, "class APIClient") {
+		t.Errorf("invalid typescript output: %s", tsCode)
+	}
+
+	// 2. Test Dart
+	err = GenerateClientSDK(doc, "dart", tmpDir)
+	if err != nil {
+		t.Fatalf("dart generation failed: %v", err)
+	}
+	dartBytes, err := os.ReadFile(filepath.Join(tmpDir, "client.dart"))
+	if err != nil {
+		t.Fatalf("failed to read dart: %v", err)
+	}
+	dartCode := string(dartBytes)
+	if !strings.Contains(dartCode, "class User") || !strings.Contains(dartCode, "fromJson") {
+		t.Errorf("invalid dart output: %s", dartCode)
+	}
+
+	// 3. Test Swift
+	err = GenerateClientSDK(doc, "swift", tmpDir)
+	if err != nil {
+		t.Fatalf("swift generation failed: %v", err)
+	}
+	swiftBytes, err := os.ReadFile(filepath.Join(tmpDir, "client.swift"))
+	if err != nil {
+		t.Fatalf("failed to read swift: %v", err)
+	}
+	swiftCode := string(swiftBytes)
+	if !strings.Contains(swiftCode, "public struct User: Codable") {
+		t.Errorf("invalid swift output: %s", swiftCode)
+	}
+}
+

@@ -78,6 +78,23 @@ func main() {
 			log.Fatalf("failed to serve documentation: %v", err)
 		}
 
+	case "client":
+		clientCmd := flag.NewFlagSet("client", flag.ExitOnError)
+		input := clientCmd.String("input", "example.srv", "Path to input .srv file")
+		lang := clientCmd.String("lang", "typescript", "Target SDK language (typescript|dart|swift)")
+		output := clientCmd.String("output", "sdk", "Output directory for the SDK")
+		_ = clientCmd.Parse(os.Args[2:])
+
+		doc, err := ParseSrvFile(*input)
+		if err != nil {
+			log.Fatalf("failed to parse file: %v", err)
+		}
+
+		if err := GenerateClientSDK(doc, *lang, *output); err != nil {
+			log.Fatalf("failed to generate client SDK: %v", err)
+		}
+		fmt.Printf("Client SDK generated successfully at %s\n", *output)
+
 	default:
 		fmt.Printf("unknown command: %s\n", command)
 		printUsage()
@@ -90,4 +107,5 @@ func printUsage() {
 	fmt.Println("  generate   Generate static HTML documentation")
 	fmt.Println("  openapi    Generate OpenAPI 3.0 specification JSON")
 	fmt.Println("  serve      Serve the documentation site locally")
+	fmt.Println("  client     Generate TypeScript, Dart, or Swift SDK clients")
 }
