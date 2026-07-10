@@ -175,3 +175,163 @@ func TestGenerateClientSDKUnsupported(t *testing.T) {
 		t.Errorf("expected error for unsupported language 'ruby', got nil")
 	}
 }
+
+func TestGenerateHtmlNoRoutes(t *testing.T) {
+	doc := &parser.SrvDoc{
+		Structs: []parser.StructDef{
+			{Name: "Item", Fields: []parser.StructField{{Name: "id", Type: "int"}}},
+		},
+	}
+	tmpHtml, err := os.CreateTemp("", "test_noroutes_*.html")
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	defer os.Remove(tmpHtml.Name())
+	tmpHtml.Close()
+
+	if err := generator.GenerateHtml(doc, "No Routes", tmpHtml.Name(), "", ""); err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+
+	contentBytes, _ := os.ReadFile(tmpHtml.Name())
+	content := string(contentBytes)
+	if strings.Contains(content, "HTTP Route Handlers") {
+		t.Errorf("did not expect 'HTTP Route Handlers' section in HTML docs")
+	}
+}
+
+func TestGenerateHtmlNoStructs(t *testing.T) {
+	doc := &parser.SrvDoc{
+		Routes: []parser.RouteDef{
+			{Method: "GET", Path: "/ping"},
+		},
+	}
+	tmpHtml, err := os.CreateTemp("", "test_nostructs_*.html")
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	defer os.Remove(tmpHtml.Name())
+	tmpHtml.Close()
+
+	if err := generator.GenerateHtml(doc, "No Structs", tmpHtml.Name(), "", ""); err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+
+	contentBytes, _ := os.ReadFile(tmpHtml.Name())
+	content := string(contentBytes)
+	if strings.Contains(content, "Data Structures &amp; Schemas") {
+		t.Errorf("did not expect 'Data Structures &amp; Schemas' section in HTML docs")
+	}
+}
+
+func TestGenerateHtmlNoFunctions(t *testing.T) {
+	doc := &parser.SrvDoc{
+		Routes: []parser.RouteDef{
+			{Method: "GET", Path: "/ping"},
+		},
+	}
+	tmpHtml, err := os.CreateTemp("", "test_nofns_*.html")
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	defer os.Remove(tmpHtml.Name())
+	tmpHtml.Close()
+
+	if err := generator.GenerateHtml(doc, "No Fns", tmpHtml.Name(), "", ""); err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+
+	contentBytes, _ := os.ReadFile(tmpHtml.Name())
+	content := string(contentBytes)
+	if strings.Contains(content, "Built-in Functions &amp; Helpers") {
+		t.Errorf("did not expect 'Built-in Functions &amp; Helpers' section in HTML docs")
+	}
+}
+
+func TestGenerateClientSDKTypeScriptNoInput(t *testing.T) {
+	doc := &parser.SrvDoc{
+		Routes: []parser.RouteDef{
+			{Method: "GET", Path: "/user", OutputType: "User"},
+		},
+	}
+	tmpDir, err := os.MkdirTemp("", "test_sdk_ts_no_input")
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := generator.GenerateClientSDK(doc, "ts", tmpDir); err != nil {
+		t.Fatalf("failed to generate TS: %v", err)
+	}
+	contentBytes, _ := os.ReadFile(filepath.Join(tmpDir, "client.ts"))
+	content := string(contentBytes)
+	if !strings.Contains(content, "async getUser(body?: any): Promise<User>") {
+		t.Errorf("expected body to be optional 'any', got content:\n%s", content)
+	}
+}
+
+func TestGenerateClientSDKTypeScriptNoOutput(t *testing.T) {
+	doc := &parser.SrvDoc{
+		Routes: []parser.RouteDef{
+			{Method: "POST", Path: "/user"},
+		},
+	}
+	tmpDir, err := os.MkdirTemp("", "test_sdk_ts_no_output")
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := generator.GenerateClientSDK(doc, "ts", tmpDir); err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	contentBytes, _ := os.ReadFile(filepath.Join(tmpDir, "client.ts"))
+	content := string(contentBytes)
+	if !strings.Contains(content, "Promise<any>") {
+		t.Errorf("expected Promise return type to default to any, got content:\n%s", content)
+	}
+}
+
+func TestGenerateClientSDKDartNoInput(t *testing.T) {
+	doc := &parser.SrvDoc{
+		Routes: []parser.RouteDef{
+			{Method: "GET", Path: "/ping"},
+		},
+	}
+	tmpDir, err := os.MkdirTemp("", "test_sdk_dart_no_input")
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := generator.GenerateClientSDK(doc, "dart", tmpDir); err != nil {
+		t.Fatalf("failed to generate Dart: %v", err)
+	}
+	contentBytes, _ := os.ReadFile(filepath.Join(tmpDir, "client.dart"))
+	content := string(contentBytes)
+	if !strings.Contains(content, "Future<dynamic> getPing([dynamic? body])") {
+		t.Errorf("expected optional body in Dart, got content:\n%s", content)
+	}
+}
+
+func TestGenerateClientSDKSwiftNoInput(t *testing.T) {
+	doc := &parser.SrvDoc{
+		Routes: []parser.RouteDef{
+			{Method: "GET", Path: "/ping"},
+		},
+	}
+	tmpDir, err := os.MkdirTemp("", "test_sdk_swift_no_input")
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	if err := generator.GenerateClientSDK(doc, "swift", tmpDir); err != nil {
+		t.Fatalf("failed to generate Swift: %v", err)
+	}
+	contentBytes, _ := os.ReadFile(filepath.Join(tmpDir, "client.swift"))
+	content := string(contentBytes)
+	if !strings.Contains(content, "body: Encodable?") {
+		t.Errorf("expected optional body in Swift, got content:\n%s", content)
+	}
+}
