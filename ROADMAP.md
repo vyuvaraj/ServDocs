@@ -41,3 +41,15 @@ This roadmap outlines the planned development phases for the ServDocs documentat
 - [ ] **ServConsole embedding** — Serve generated docs within the ServConsole documentation tab
 
 > See [UNIFIED_ROADMAP.md](../servverse-repo/UNIFIED_ROADMAP.md) for the full ecosystem priority matrix.
+
+
+---
+
+## Phase 5: Code Health & Test Coverage (Pending — Phase 22)
+
+> **Issue:** No pkg/ structure. Only 5 test functions.
+
+| # | Item | Effort | Description | Status |
+|---|------|--------|-------------|--------|
+| 5.1 | **Add pkg/ structure** | Medium | Create pkg/parser/, pkg/generator/, pkg/openapi/ with clean interfaces | [ ] |
+| 5.2 | **Expand test suite** | Medium | From 5 → 25+ test functions: parser accuracy for all route types, OpenAPI output validation, multi-file resolution, middleware chain documentation | [ ] |
