@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"servdocs/pkg/generator"
+	"servdocs/pkg/openapi"
+	"servdocs/pkg/parser"
 )
 
 func main() {
@@ -27,7 +31,7 @@ func main() {
 		outDir := generateCmd.String("out-dir", "", "Output directory for versioned docs")
 		_ = generateCmd.Parse(os.Args[2:])
 
-		doc, err := ParseSrvFile(*input)
+		doc, err := parser.ParseSrvFile(*input)
 		if err != nil {
 			log.Fatalf("failed to parse file: %v", err)
 		}
@@ -40,7 +44,7 @@ func main() {
 			*output = filepath.Join(*outDir, *versionTag, "index.html")
 		}
 
-		if err := GenerateHtml(doc, *title, *output, *outDir, *versionTag); err != nil {
+		if err := generator.GenerateHtml(doc, *title, *output, *outDir, *versionTag); err != nil {
 			log.Fatalf("failed to generate HTML: %v", err)
 		}
 		fmt.Printf("Documentation site generated successfully at %s\n", *output)
@@ -52,12 +56,12 @@ func main() {
 		title := openapiCmd.String("title", "Servverse API", "API Title")
 		_ = openapiCmd.Parse(os.Args[2:])
 
-		doc, err := ParseSrvFile(*input)
+		doc, err := parser.ParseSrvFile(*input)
 		if err != nil {
 			log.Fatalf("failed to parse file: %v", err)
 		}
 
-		if err := GenerateOpenAPI(doc, *title, *output); err != nil {
+		if err := openapi.Generate(doc, *title, *output); err != nil {
 			log.Fatalf("failed to generate OpenAPI spec: %v", err)
 		}
 		fmt.Printf("OpenAPI specification generated successfully at %s\n", *output)
@@ -69,13 +73,13 @@ func main() {
 		title := serveCmd.String("title", "Servverse", "Documentation Title")
 		_ = serveCmd.Parse(os.Args[2:])
 
-		doc, err := ParseSrvFile(*input)
+		doc, err := parser.ParseSrvFile(*input)
 		if err != nil {
 			log.Fatalf("failed to parse file: %v", err)
 		}
 
 		tempFile := "index_temp.html"
-		if err := GenerateHtml(doc, *title, tempFile, "", ""); err != nil {
+		if err := generator.GenerateHtml(doc, *title, tempFile, "", ""); err != nil {
 			log.Fatalf("failed to generate HTML: %v", err)
 		}
 		defer os.Remove(tempFile)
@@ -96,12 +100,12 @@ func main() {
 		output := clientCmd.String("output", "sdk", "Output directory for the SDK")
 		_ = clientCmd.Parse(os.Args[2:])
 
-		doc, err := ParseSrvFile(*input)
+		doc, err := parser.ParseSrvFile(*input)
 		if err != nil {
 			log.Fatalf("failed to parse file: %v", err)
 		}
 
-		if err := GenerateClientSDK(doc, *lang, *output); err != nil {
+		if err := generator.GenerateClientSDK(doc, *lang, *output); err != nil {
 			log.Fatalf("failed to generate client SDK: %v", err)
 		}
 		fmt.Printf("Client SDK generated successfully at %s\n", *output)

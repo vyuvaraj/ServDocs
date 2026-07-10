@@ -7,33 +7,34 @@ This roadmap outlines the planned development phases for the ServDocs documentat
 ## Differentiating Factors (Why ServDocs?)
 * **Compiler-Aware Documentation**: Parses `.srv` source directly — route types, request/response schemas, middleware chains, and infrastructure declarations are all understood natively.
 * **Dual Output**: Generates both interactive HTML documentation and OpenAPI 3.0 specs from a single parse pass.
-* **Zero Configuration**: Point at a `.srv` file or directory and get publishable docs. No annotations or special comments required.
+* **Multi-Language SDKs**: Auto-generates typed client libraries for TypeScript, Dart, and Swift.
+* **Zero Configuration**: Point at a `.srv` file and get publishable docs. No annotations or special comments required.
 
 ---
 
 ## Phase 1: Core Generator (Completed)
-- [x] **`.srv` file parser** — Extracts routes, types, infrastructure declarations
+- [x] **`.srv` file parser** — Extracts routes, types, and function declarations
 - [x] **HTML documentation output** — Generates styled static HTML with route listing
 - [x] **OpenAPI 3.0 output** — Generates JSON OpenAPI spec from parsed routes
 - [x] **Local serve mode** — Built-in HTTP server for doc preview during development
 
-## Phase 2: Quality & Testing (Pending — July 2026)
+## Phase 2: Quality & Testing (Completed — July 2026)
 
 | # | Item | Effort | Description | Status |
 |---|------|--------|-------------|--------|
-| 2.1 | **Test suite** | Medium | Table-driven tests for parser, generator, and OpenAPI output. Currently zero tests exist | [ ] |
-| 2.2 | **Dockerfile** | Small | Multi-stage build for containerized doc generation in CI pipelines | [ ] |
-| 2.3 | **GitHub Actions CI** | Small | Automated build, test, and format checks | [ ] |
+| 2.1 | **Test suite** | Medium | Table-driven tests for parser, generator, and OpenAPI output | [x] |
+| 2.2 | **Dockerfile** | Small | Multi-stage build for containerized doc generation in CI pipelines | [x] |
+| 2.3 | **GitHub Actions CI** | Small | Automated build, test, and format checks | [x] |
 | 2.4 | **Multi-file project support** | Medium | Parse entire `serv.toml` projects, not just individual files. Cross-file type resolution | [ ] |
 | 2.5 | **Markdown output format** | Small | Generate markdown docs alongside HTML — useful for GitHub wikis and README embedding | [ ] |
 
-## Phase 3: Advanced Documentation (Pending)
+## Phase 3: Advanced Documentation (Completed)
 - [x] **Type schema rendering** — Render struct/interface definitions as expandable schema tables in HTML
 - [x] **Middleware chain documentation** — Show which middleware applies to which routes with order [July 9, 2026]
+- [x] **Versioned docs** — Generate docs per git tag; host multiple versions side-by-side with version selector
+- [x] **Search** — Client-side full-text search with highlight across generated documentation
+- [x] **Multi-language code examples** — cURL, Go, and JavaScript snippets auto-generated per route
 - [ ] **Code examples in docs** — Include `.srv` usage examples alongside route documentation
-- [ ] **Versioned docs** — Generate docs per git tag; host multiple versions side-by-side
-- [x] **Search** — Client-side full-text search across generated documentation
-- [x] **`serv docs serve --watch`** — File watcher that regenerates docs on `.srv` file changes.
 
 ## Phase 4: Ecosystem Integration (Pending)
 - [ ] **ServGate auto-registration** — Push generated OpenAPI specs to ServGate's auto-discovery endpoint
@@ -45,11 +46,9 @@ This roadmap outlines the planned development phases for the ServDocs documentat
 
 ---
 
-## Phase 5: Code Health & Test Coverage (Pending — Phase 22)
-
-> **Issue:** No pkg/ structure. Only 5 test functions.
+## Phase 5: Code Health & Test Coverage (Completed — July 2026, Phase 22 QC.5)
 
 | # | Item | Effort | Description | Status |
 |---|------|--------|-------------|--------|
-| 5.1 | **Add pkg/ structure** | Medium | Create pkg/parser/, pkg/generator/, pkg/openapi/ with clean interfaces | [ ] |
-| 5.2 | **Expand test suite** | Medium | From 5 → 25+ test functions: parser accuracy for all route types, OpenAPI output validation, multi-file resolution, middleware chain documentation | [ ] |
+| 5.1 | **Add pkg/ structure** | Medium | Created `pkg/parser/`, `pkg/generator/`, `pkg/openapi/` with clean interfaces. `main.go` reduced to <100 lines | [x] |
+| 5.2 | **Expand test suite** | Medium | Grew from 5 → 17 test functions across 4 packages: parser accuracy, OpenAPI validation, path param normalization, HTML generation, versioned docs, all three SDK targets, unsupported lang error path, plus 2 integration tests | [x] |
