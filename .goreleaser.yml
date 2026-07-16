@@ -75,5 +75,25 @@ scoops:
     description: "Documentation server for the ServVerse platform"
     license: "Apache-2.0"
 
+
+nfpms:
+  - id: servdocs-pkg
+    package_name: servdocs
+    builds: [servdocs]
+    vendor: Yuvaraj
+    homepage: https://github.com/vyuvaraj/ServDocs
+    maintainer: Yuvaraj <vyuvaraj@github.com>
+    description: Documentation server from the ServVerse platform
+    license: Apache-2.0
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/local/bin
+    contents:
+      - src: README.md
+        dst: /usr/share/doc/servdocs/README.md
+    scripts:
+      postinstall: scripts/postinstall.sh
+      preremove: scripts/preremove.sh
 release:
   mode: replace
